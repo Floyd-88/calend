@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Выбор даты</title>
+  <style>
+    .date-picker {
+      position: relative;
+      font-family: Arial, sans-serif;
+    }
+
+    input {
+      margin: 10px;
+      padding: 5px;
+    }
+
+    .calendar {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: none; /* Изначально скрываем календарь */
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 5px;
+      text-align: center;
+    }
+
+    .calendar-dates {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+    }
+
+    .calendar-dates div {
+      padding: 5px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .calendar-dates div:hover {
+      background-color: #e6e6e6;
+    }
+
+    .selected {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .range {
+      background-color: #b2dfdb;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="date-picker">
+    <label>Дата от: <input type="text" id="start-date" readonly /></label>
+    <div id="calendar-start" class="calendar">
+      <div class="calendar-header">
+        <button class="prev-year">&lt;&lt;</button>
+        <button class="prev-month">&lt;</button>
+        <span id="month-year-start"></span>
+        <button class="next-month">&gt;</button>
+        <button class="next-year">&gt;&gt;</button>
+      </div>
+      <div class="calendar-body">
+        <div class="calendar-days">
+          <div>Пн</div>
+          <div>Вт</div>
+          <div>Ср</div>
+          <div>Чт</div>
+          <div>Пт</div>
+          <div>Сб</div>
+          <div>Вс</div>
+        </div>
+        <div id="calendar-dates-start" class="calendar-dates"></div>
+      </div>
+    </div>
+
+    <label>Дата до: <input type="text" id="end-date" readonly /></label>
+    <div id="calendar-end" class="calendar">
+      <div class="calendar-header">
+        <button class="prev-year">&lt;&lt;</button>
+        <button class="prev-month">&lt;</button>
+        <span id="month-year-end"></span>
+        <button class="next-month">&gt;</button>
+        <button class="next-year">&gt;&gt;</button>
+      </div>
+      <div class="calendar-body">
+        <div class="calendar-days">
+          <div>Пн</div>
+          <div>Вт</div>
+          <div>Ср</div>
+          <div>Чт</div>
+          <div>Пт</div>
+          <div>Сб</div>
+          <div>Вс</div>
+        </div>
+        <div id="calendar-dates-end" class="calendar-dates"></div>
+      </div>
+    </div>
+
+    <button id="apply-btn">Применить</button>
+    <button id="reset-btn">Сбросить</button>
+  </div>
+
+  <script>
+    const months = [
+      "Январь",
+      "Февраль",
+      "Март",
+      "Апрель",
+      "Май",
+      "Июнь",
+      "Июль",
+      "Август",
+      "Сентябрь",
+      "Октябрь",
+      "Ноябрь",
+      "Декабрь",
+    ];
+
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let selectedStartDate = null;
+    let selectedEndDate = null;
+
+    // Инпуты
+    const startDateInput = document.getElementById("start-date");
+    const endDateInput = document.getElementById("end-date");
+
+    // Календарь для "Дата от"
+    const calendarStart = document.getElementById("calendar-start");
+    const monthYearDisplayStart = document.getElementById("month-year-start");
+    const calendarDatesStart = document.getElementById("calendar-dates-start");
+
+    // Календарь для "Дата до"
+    const calendarEnd = document.getElementById("calendar-end");
+    const monthYearDisplayEnd = document.getElementById("month-year-end");
+    const calendarDatesEnd = document.getElementById("calendar-dates-end");
+
+    // Функция для отображения календаря под инпутом
+    function showCalendar(calendar, input, type) {
+      const rect = input.getBoundingClientRect();
+      calendar.style.top = `${rect.bottom + window.scrollY}px`;
+      calendar.style.left = `${rect.left + window.scrollX}px`;
+      calendar.style.display = "block";
+      renderCalendar(
+        calendar.querySelector(".calendar-dates"),
+        calendar.querySelector(".calendar-header span"),
+        currentMonth,
+        currentYear,
+        type
+      );
+    }
+
+    // Открытие календаря для "Дата от"
+    startDateInput.addEventListener("click", function (event) {
+      event.stopPropagation();
+      showCalendar(calendarStart, startDateInput, "start");
+    });
+
+    // Открытие календаря для "Дата до"
+    endDateInput.addEventListener("click", function (event) {
+      event.stopPropagation();
+      showCalendar(calendarEnd, endDateInput, "end");
+    });
+
+    // Общая функция для рендеринга календаря
+    function renderCalendar(
+      calendarDates,
+      monthYearDisplay,
+      month,
+      year,
+      type
+    ) {
+      monthYearDisplay.textContent = `${months[month]} ${year}`;
+      calendarDates.innerHTML = "";
+
+      const firstDay = new Date(year, month, 1).getDay() || 7;
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 1; i < firstDay; i++) {
+        calendarDates.innerHTML += "<div></div>";
+      }
+
+      for (let i = 1; i <= totalDays; i++) {
+        const dateElement = document.createElement("div");
+        dateElement.textContent = i;
+
+        const currentDate = new Date(year, month, i);
+
+        // Логика выделения выбранных дат и интервала
+        if (selectedStartDate && selectedEndDate) {
+          if (currentDate >= selectedStartDate && currentDate <= selectedEndDate) {
+            dateElement.classList.add("range");
+          }
+        }
+
+        if (type === "start" && selectedStartDate && currentDate.toDateString() === selectedStartDate.toDateString()) {
+          dateElement.classList.add("selected");
+        } else if (type === "end" && selectedEndDate && currentDate.toDateString() === selectedEndDate.toDateString()) {
+          dateElement.classList.add("selected");
+        }
+
+        dateElement.addEventListener("click", function () {
+          if (type === "start") {
+            selectedStartDate = currentDate;
+            startDateInput.value = formatDate(currentDate);
+            if (selectedEndDate && selectedEndDate < selectedStartDate) {
+              selectedEndDate = null;
+              endDateInput.value = "";
+            }
+          } else if (type === "end") {
+            if (selectedStartDate && currentDate < selectedStartDate) {
+              alert("Дата окончания не может быть раньше даты начала");
+              return;
+            }
+            selectedEndDate = currentDate;
+            endDateInput.value = formatDate(currentDate);
+          }
+          updateCalendars();
+        });
+
+        calendarDates.appendChild(dateElement);
+      }
+    }
+
+    // Обновление обоих календарей в зависимости от выбранных дат
+    function updateCalendars() {
+      renderCalendar(calendarDatesStart, monthYearDisplayStart, currentMonth, currentYear, "start");
+      renderCalendar(calendarDatesEnd, monthYearDisplayEnd, currentMonth, currentYear, "end");
+    }
+
+    // Форматирование даты
+    function formatDate(date) {
+      return `${date.getDate().toString().padStart(2, "0")}.${(
+        date.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}.${date.getFullYear()}`;
+    }
+
+    // Кнопка "Применить"
+    document.getElementById("apply-btn").addEventListener("click", function () {
+      if (selectedStartDate && selectedEndDate) {
+        console.log(`Выбранный интервал: ${formatDate(selectedStartDate)} - ${formatDate(selectedEndDate)}`);
+        closeAllCalendars();
+      } else {
+        alert("Пожалуйста, выберите обе даты.");
+      }
+    });
+
+    // Кнопка "Сбросить"
+    document.getElementById("reset-btn").addEventListener("click", function () {
+      selectedStartDate = null;
+      selectedEndDate = null;
+      startDateInput.value = "";
+      endDateInput.value = "";
+      updateCalendars();
+    });
+
+    // Закрытие всех календарей
+    function closeAllCalendars() {
+      calendarStart.style.display = "none";
+      calendarEnd.style.display = "none";
+    }
+
+    // Закрытие календарей при клике за пределами
+    // document.addEventListener("click", function (event) {
+    //   if (!event.target.closest(".calendar") && !event.target.closest(".date-picker")) {
+    //     closeAllCalendars();
+    //   }
+    // });
+
+    // Изменение месяца и года
+    function changeMonth(year, month, direction, calendarType) {
+      const newDate = new Date(year, month + direction, 1);
+      if (calendarType === "start") {
+        currentYear = newDate.getFullYear();
+        currentMonth = newDate.getMonth();
+        renderCalendar(calendarDatesStart, monthYearDisplayStart, currentMonth, currentYear, "start");
+      } else if (calendarType === "end") {
+        currentYear = newDate.getFullYear();
+        currentMonth = newDate.getMonth();
+        renderCalendar(calendarDatesEnd, monthYearDisplayEnd, currentMonth, currentYear, "end");
+      }
+    }
+
+    // Обработчики кнопок для изменения месяца и года
+    document.querySelectorAll(".prev-year").forEach(button => {
+      button.addEventListener("click", function (event) {
+        const calendarType = event.target.closest(".calendar").id === "calendar-start" ? "start" : "end";
+        changeMonth(currentYear, currentMonth, -12, calendarType);
+      });
+    });
+
+    document.querySelectorAll(".prev-month").forEach(button => {
+      button.addEventListener("click", function (event) {
+        const calendarType = event.target.closest(".calendar").id === "calendar-start" ? "start" : "end";
+        changeMonth(currentYear, currentMonth, -1, calendarType);
+      });
+    });
+
+    document.querySelectorAll(".next-month").forEach(button => {
+      button.addEventListener("click", function (event) {
+        const calendarType = event.target.closest(".calendar").id === "calendar-start" ? "start" : "end";
+        changeMonth(currentYear, currentMonth, 1, calendarType);
+      });
+    });
+
+    document.querySelectorAll(".next-year").forEach(button => {
+      button.addEventListener("click", function (event) {
+        const calendarType = event.target.closest(".calendar").id === "calendar-start" ? "start" : "end";
+        changeMonth(currentYear, currentMonth, 12, calendarType);
+      });
+    });
+
+  </script>
+</body>
+</html>
